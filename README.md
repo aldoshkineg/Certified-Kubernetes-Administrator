@@ -118,3 +118,10 @@ and troubleshooting write-ups to help prepare for the Certified Kubernetes Admin
 * Check the info panel (`i`) for hidden hints (namespace, resources)
 * If stuck >7 minutes → flag and move on
 * Return later with a fresh perspective
+
+## ⚠️ Disclaimer
+
+This repository contains only personal study notes and independently created practice
+materials for Kubernetes and CKA preparation. It does not include or reproduce
+any official or confidential exam content. Any resemblance to real exam
+questions is purely coincidental.
