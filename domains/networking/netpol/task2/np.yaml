@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus
+  namespace: monitoring
+spec:
+  podSelector: {} # Applies to all pods in the 'monitoring' namespace
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          source: internal # Key selector for the source namespace
+    ports:
+    - protocol: TCP
+      port: 9090

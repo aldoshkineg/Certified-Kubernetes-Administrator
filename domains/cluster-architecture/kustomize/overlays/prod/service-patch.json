@@ -1,0 +1,8 @@
+# overlays/prod/service-patch.json
+[
+  {
+    "op": "replace",
+    "path": "/metadata/name",
+    "value": "nginx-web-prod"
+  }
+]

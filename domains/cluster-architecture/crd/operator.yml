@@ -1,0 +1,127 @@
+---
+# Create ServiceAccount for the operator
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: website-operator-sa
+  namespace: default
+
+---
+# Create ClusterRole with necessary permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: website-operator-role
+rules:
+  - apiGroups: ["example.com"]
+    resources: ["websites"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: website-operator
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: website-operator
+  template:
+    metadata:
+      labels:
+        app: website-operator
+    spec:
+      serviceAccountName: website-operator-sa
+      containers:
+        - name: operator
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/sh
+          args:
+            - -c
+            - |
+              echo "Operator started with garbage collection..."
+              while true; do
+                echo "=== Reconciliation cycle at $(date) ==="
+
+                # Track existing websites
+                declare -A existing_websites
+
+                # Process each website
+                kubectl get websites --all-namespaces -o json | \
+                  jq -c '.items[]?' | \
+                  while read -r website; do
+                    ns=$(echo "$website" | jq -r '.metadata.namespace')
+                    name=$(echo "$website" | jq -r '.metadata.name')
+                    domain=$(echo "$website" | jq -r '.spec.domain // "example.com"')
+                    replicas=$(echo "$website" | jq -r '.spec.replicas // 1')
+                    port=$(echo "$website" | jq -r '.spec.port // 80')
+
+                    # Mark as existing
+                    existing_websites["$ns/$name"]=1
+
+                    echo "Processing: $name in $ns (Domain: $domain, Replicas: $replicas, Port: $port)"
+
+                    # Create deployment if it doesn't exist
+                    if ! kubectl get deployment "$name-website" -n "$ns" &>/dev/null; then
+                      echo "  Creating deployment with $replicas replicas..."
+                      kubectl create deployment "$name-website" \
+                        --image=nginx:alpine \
+                        --replicas="$replicas" \
+                        --namespace="$ns"
+                    else
+                      # Update replicas if changed
+                      current_replicas=$(kubectl get deployment "$name-website" -n "$ns" -o jsonpath='{.spec.replicas}')
+                      if [ "$current_replicas" != "$replicas" ]; then
+                        echo "  Scaling deployment to $replicas replicas..."
+                        kubectl scale deployment "$name-website" -n "$ns" --replicas="$replicas"
+                      fi
+                    fi
+
+                    # Create service if it doesn't exist
+                    if ! kubectl get svc "$name-website" -n "$ns" &>/dev/null; then
+                      echo "  Creating service on port $port..."
+                      kubectl expose deployment "$name-website" \
+                        --port="$port" \
+                        --target-port=80 \
+                        --name="$name-website" \
+                        --namespace="$ns"
+                    fi
+                  done
+
+                # GARBAGE COLLECTION: Remove orphaned resources
+                echo "=== Garbage collection phase ==="
+
+                # Find all deployments with -website suffix
+                kubectl get deployments --all-namespaces -o json | \
+                  jq -c '.items[]? | select(.metadata.name | endswith("-website"))' | \
+                  while read -r deployment; do
+                    dep_ns=$(echo "$deployment" | jq -r '.metadata.namespace')
+                    dep_name=$(echo "$deployment" | jq -r '.metadata.name')
+                    # Extract website name from deployment name (remove -website suffix)
+                    website_name="${dep_name%-website}"
+
+                    # Check if corresponding website exists
+                    if ! kubectl get website "$website_name" -n "$dep_ns" &>/dev/null; then
+                      echo "  Deleting orphaned deployment: $dep_name in $dep_ns"
+                      kubectl delete deployment "$dep_name" -n "$dep_ns" --wait=false
+
+                      # Also delete associated service
+                      if kubectl get svc "$dep_name" -n "$dep_ns" &>/dev/null; then
+                        echo "  Deleting associated service: $dep_name in $dep_ns"
+                        kubectl delete svc "$dep_name" -n "$dep_ns" --wait=false
+                      fi
+                    fi
+                  done
+
+                echo "=== Cycle complete ==="
+                sleep 30
+              done

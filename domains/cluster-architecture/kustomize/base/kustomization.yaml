@@ -1,0 +1,16 @@
+# base/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# List all resources in the base
+resources:
+- deployment.yaml
+- service.yaml
+
+# Apply common annotations
+commonAnnotations:
+  maintained-by: kustomize-demo
+
+commonLabels:
+  app: nginx-web
+  component: frontend

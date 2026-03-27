@@ -1,0 +1,24 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+  namespace: default # Creates the issuer in the 'default' namespace
+spec:
+  selfSigned: {}
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: my-mock-cert
+  namespace: default
+spec:
+  # The secret where the TLS key pair will be stored
+  secretName: my-mock-cert-tls
+  # Referencing the self-signed issuer created earlier
+  issuerRef:
+    name: selfsigned-issuer
+    kind: Issuer
+  # The DNS names this certificate is valid for
+  dnsNames:
+  - www.app.com

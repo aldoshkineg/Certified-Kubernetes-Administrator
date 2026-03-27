@@ -1,0 +1,22 @@
+# overlays/prod/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../base
+
+# Two types of patches - know both for exam!
+patches:
+- path: service-patch.json
+  target:
+    kind: Service
+    name: nginx-web
+    version: v1
+- path: deployment-patch.yaml
+
+# Add name prefix
+namePrefix: prod-
+
+labels:
+- pairs:
+    env: prod

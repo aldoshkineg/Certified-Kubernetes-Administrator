@@ -1,0 +1,87 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "generic/ubuntu2204"
+
+  # Disable automatic box update checking
+  config.vm.box_check_update = false
+
+  # Provider configuration for libvirt
+  config.vm.provider :libvirt do |libvirt|
+    libvirt.driver = "kvm"
+    libvirt.cpu_mode = "host-passthrough"
+  end
+
+  # Define the number of nodes
+  NUM_MASTERS = 3
+  NUM_WORKERS = 2
+
+ # Create HAproxy Lb
+ config.vm.define "lb" do |lb|
+    lb.vm.hostname = "k8s-lb"
+    lb.vm.network :private_network, ip: "192.168.56.10"
+    lb.vm.network "forwarded_port",
+      guest: 9000,
+      host: 9000,
+      auto_correct: true
+
+    lb.vm.provider :libvirt do |node|
+      node.memory = 2048
+      node.cpus = 3
+    end
+    lb.vm.provision "file", source: "bootstrap/lb-setup.sh", destination: "/tmp/lb-setup.sh"
+
+    # Bootstrap script for master
+    lb.vm.provision "shell", inline: <<-SHELL
+      #!/bin/bash
+      chmod +x /tmp/lb-setup.sh
+      /tmp/lb-setup.sh
+    SHELL
+  end
+
+  # Create master nodes
+  (1..NUM_MASTERS).each do |i|
+    config.vm.define "master-#{i}" do |master|
+      master.vm.hostname = "master-#{i}"
+      master.vm.network :private_network, ip: "192.168.56.#{20 + i}"
+
+      master.vm.provider :libvirt do |node|
+        node.memory = 2048
+        node.cpus = 3
+        node.storage :file, :size => '10G'
+      end
+
+      # Bootstrap script for master
+      master.vm.synced_folder "bootstrap", "/bootstrap"
+
+      master.vm.provision "shell", inline: <<-SHELL
+        #!/bin/bash
+        echo "=== Setting up K8s Master Node ==="
+        chmod +x /bootstrap/bootstrap.sh
+        /bootstrap/bootstrap.sh full
+      SHELL
+    end
+  end
+
+  # Create worker nodes
+  (1..NUM_WORKERS).each do |i|
+    config.vm.define "worker-#{i}" do |worker|
+      worker.vm.hostname = "worker-#{i}"
+      worker.vm.network :private_network, ip: "192.168.56.#{30 + i}"
+
+      worker.vm.provider :libvirt do |node|
+        node.memory = 2048
+        node.cpus = 3
+        node.storage :file, :size => '10G'
+      end
+
+      # Bootstrap script for worker
+      worker.vm.synced_folder "bootstrap", "/bootstrap"
+
+      worker.vm.provision "shell", inline: <<-SHELL
+        #!/bin/bash
+        echo "=== Setting up K8s Worker Node ==="
+        chmod +x /bootstrap/bootstrap.sh
+        /bootstrap/bootstrap.sh full
+      SHELL
+    end
+  end
+end

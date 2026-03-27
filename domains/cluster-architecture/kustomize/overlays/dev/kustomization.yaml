@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../base
+
+# MODERN SYNTAX (not deprecated)
+patches:
+- path: deployment-patch.yaml
+  target:
+    kind: Deployment
+    name: nginx-web
+
+# Safe: labels only affect metadata, not selectors
+
+configMapGenerator:
+- literals:
+  - LOG_LEVEL=DEBUG
+  - ENVIRONMENT=development
+  name: app-config
+
+labels:
+- pairs:
+    env: development

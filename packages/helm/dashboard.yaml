@@ -1,0 +1,15 @@
+USER-SUPPLIED VALUES:
+enableInsecureLogin: false
+enableSkipLogin: false
+metricsScraper:
+  enabled: true
+protocolHttp: false
+replicaCount: 2
+resources:
+  requests:
+    cpu: 100m
+    memory: 100Mi
+service:
+  externalPort: 443
+  nodePort: 30080
+  type: NodePort

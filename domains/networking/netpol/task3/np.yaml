@@ -1,0 +1,27 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: payment-gateway-policy
+  namespace: finance
+spec:
+  podSelector:
+    matchLabels:
+      app: payment-gateway # Targets the specific payment pod
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector: {} # Allows from all pods in the 'finance' namespace
+    ports:
+    - protocol: TCP
+      port: 443
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          type: database # Restricts egress to database pods
+    ports:
+    - protocol: TCP
+      port: 5432

@@ -1,0 +1,24 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tls-k8s-dev
+  namespace: colors
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - k8s.dev
+      secretName: k8s-dev-tls
+  rules:
+    - host: k8s.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: green-app-service
+                port:
+                  number: 80
+

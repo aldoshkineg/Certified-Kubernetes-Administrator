@@ -1,0 +1,105 @@
+repositories:
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+
+  - name: argo
+    url: https://argoproj.github.io/argo-helm
+
+  - name: kubernetes-dashboard
+    url: https://kubernetes-retired.github.io/dashboard/
+
+  - name: ingress-nginx
+    url: https://kubernetes.github.io/ingress-nginx
+
+  - name: jetstack
+    url: https://charts.jetstack.io
+
+  - name: metrics-server
+    url: https://kubernetes-sigs.github.io/metrics-server
+
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+
+  - name: vpa
+    url: https://cowboysysop.github.io/charts/
+
+helmDefaults:
+  wait: true
+  timeout: 600
+  atomic: true
+  createNamespace: true
+
+releases:
+
+  # --- Cert Manager ---
+  - name: cert-manager
+    namespace: cert-manager
+    chart: jetstack/cert-manager
+    version: v1.13.3
+    values:
+      - cert-manager.yaml
+
+  # --- Argo CD ---
+  - name: argocd
+    namespace: argocd
+    chart: argo/argo-cd
+    version: 9.4.1
+    values:
+      - argo.yaml
+
+  # --- Kubernetes Dashboard ---
+  - name: kubernetes-dashboard
+    namespace: kube-system
+    chart: kubernetes-dashboard/kubernetes-dashboard
+    version: 7.14.0
+    values:
+      - dashboard.yaml
+
+  # --- Ingress NGINX ---
+  - name: ingress-nginx
+    namespace: ingress-nginx
+    chart: ingress-nginx/ingress-nginx
+    version: 4.14.3
+    values:
+      - ingress-nginx.yaml
+
+  # --- Metrics Server ---
+  - name: metrics-server
+    namespace: monitoring
+    chart: metrics-server/metrics-server
+    version: 3.13.0
+    values:
+      - metrics-server.yaml
+
+  # --- Prometheus Stack ---
+  - name: prometheus
+    namespace: monitoring
+    chart: prometheus-community/kube-prometheus-stack
+    version: 81.6.2
+    values:
+      - prom.yaml
+
+  # --- Loki Stack ---
+  - name: loki
+    namespace: monitoring
+    chart: grafana/loki-stack
+    version: 2.10.3
+    values:
+      - loki-stack.yaml
+
+  # --- Nginx Gateway Fabric ---
+  - name: ngf
+    namespace: nginx-gateway
+    createNamespace: true
+    chart: oci://ghcr.io/nginx/charts/nginx-gateway-fabric
+    version: 2.4.1
+    values:
+      - nginx-gateway.yaml
+
+  # --- Vertical Pod Autoscaler ---
+  - name: vpa
+    namespace: vpa
+    chart: vpa/vertical-pod-autoscaler
+    version: 11.1.1
+    values:
+      - vpa.yaml
