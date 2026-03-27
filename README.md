@@ -119,7 +119,7 @@ and troubleshooting write-ups to help prepare for the Certified Kubernetes Admin
 * If stuck >7 minutes → flag and move on
 * Return later with a fresh perspective
 
-## ⚠️ Disclaimer
+## ℹ️ Disclaimer
 
 This repository contains only personal study notes and independently created practice
 materials for Kubernetes and CKA preparation. It does not include or reproduce
